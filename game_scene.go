@@ -97,6 +97,9 @@ func (g *GameScene) Update() error {
 	// Check for alien missile-player collisions
 	g.CheckAlienMissilePlayerCollision()
 	
+	// Check for missile-base collisions
+	g.CheckMissileBaseCollisions()
+	
 	g.CheckWaveStatus()
 	g.waveTimer.Update()
 	if g.waveTimer.IsDone() {
@@ -418,5 +421,107 @@ func (g *GameScene) CheckAlienMissilePlayerCollision() {
 	}
 
 	// Update alien missiles slice
+	g.alienMissiles = activeAlienMissiles
+}
+
+func (g *GameScene) CheckMissileBaseCollisions() {
+	// Check player missiles vs bases
+	activeMissiles := make([]*PlayerMissile, 0, len(g.player.Missiles))
+	for _, missile := range g.player.Missiles {
+		hit := false
+		
+		// Get missile center 4 pixels on X-axis for more precise collision
+		missileWidth := missile.Sprite.Bounds().Dx()
+		missileCenterX := missile.X + missileWidth/2 - 2 // Center minus 2 pixels
+		missileRect := image.Rect(missileCenterX, missile.Y,
+			missileCenterX+4, // Only 4 pixels wide
+			missile.Y+missile.Sprite.Bounds().Dy())
+		
+		for _, base := range g.bases {
+			for _, block := range base.Blocks {
+				if !block.Exists {
+					continue
+				}
+				
+				// Get block bounds (accounting for 50% scale)
+				blockRect := image.Rect(block.X, block.Y, block.X+8, block.Y+8)
+				
+				if missileRect.Overlaps(blockRect) {
+					block.TakeDamage()
+					hit = true
+					
+					// Play alien explosion sound for base hit
+					explosionStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.AlienExplosionSound))
+					if err != nil {
+						log.Printf("Error decoding base hit sound: %v", err)
+					} else {
+						explosionAudioPlayer, err := g.audioContext.NewPlayer(explosionStream)
+						if err != nil {
+							log.Printf("Error creating audio player for base hit sound: %v", err)
+						} else {
+							explosionAudioPlayer.Play()
+						}
+					}
+					break
+				}
+			}
+			if hit {
+				break
+			}
+		}
+		
+		if !hit {
+			activeMissiles = append(activeMissiles, missile)
+		}
+	}
+	g.player.Missiles = activeMissiles
+	
+	// Check alien missiles vs bases
+	activeAlienMissiles := make([]*AlienMissile, 0, len(g.alienMissiles))
+	for _, missile := range g.alienMissiles {
+		hit := false
+		
+		// Get missile bounds
+		missileRect := image.Rect(missile.X, missile.Y,
+			missile.X+missile.Sprite.Bounds().Dx(),
+			missile.Y+missile.Sprite.Bounds().Dy())
+		
+		for _, base := range g.bases {
+			for _, block := range base.Blocks {
+				if !block.Exists {
+					continue
+				}
+				
+				// Get block bounds (accounting for 50% scale)
+				blockRect := image.Rect(block.X, block.Y, block.X+8, block.Y+8)
+				
+				if missileRect.Overlaps(blockRect) {
+					block.TakeDamage()
+					hit = true
+					
+					// Play alien explosion sound for base hit
+					explosionStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.AlienExplosionSound))
+					if err != nil {
+						log.Printf("Error decoding base hit sound: %v", err)
+					} else {
+						explosionAudioPlayer, err := g.audioContext.NewPlayer(explosionStream)
+						if err != nil {
+							log.Printf("Error creating audio player for base hit sound: %v", err)
+						} else {
+							explosionAudioPlayer.Play()
+						}
+					}
+					break
+				}
+			}
+			if hit {
+				break
+			}
+		}
+		
+		if !hit {
+			activeAlienMissiles = append(activeAlienMissiles, missile)
+		}
+	}
 	g.alienMissiles = activeAlienMissiles
 }

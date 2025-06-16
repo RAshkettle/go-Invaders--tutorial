@@ -66,7 +66,7 @@ func (b *BaseBlock) TakeDamage() {
 	if b.DamageLevel >= 3 {
 		b.Exists = false
 	} else {
-		// Update sprite to show damage
+		// Update sprite to show damage (0=first sprite, 1=second, 2=third)
 		b.Sprite = assets.BaseSprites[b.DamageLevel]
 	}
 }

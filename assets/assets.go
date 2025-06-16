@@ -69,6 +69,6 @@ func splitBaseImage(spriteSheet *ebiten.Image) []*ebiten.Image{
 	const tileSize = 16
 	first := spriteSheet.SubImage(image.Rect(0, 0, tileSize, tileSize)).(*ebiten.Image)
 	second := spriteSheet.SubImage(image.Rect(tileSize, 0, tileSize*2, tileSize)).(*ebiten.Image)
-	third := spriteSheet.SubImage(image.Rect(tileSize, 0, tileSize*3, tileSize)).(*ebiten.Image)
+	third := spriteSheet.SubImage(image.Rect(tileSize*2, 0, tileSize*3, tileSize)).(*ebiten.Image)
 	return []*ebiten.Image{first, second, third}
 }
