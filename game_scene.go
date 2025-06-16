@@ -33,6 +33,8 @@ type GameScene struct {
 	scoreFont        *text.GoTextFace
 	waveTimer        *stopwatch.Stopwatch
 	alienMissiles    []*AlienMissile
+	deathTimer       *stopwatch.Stopwatch
+	playerDead       bool
 }
 
 const (
@@ -49,6 +51,17 @@ const(
 
 func (g *GameScene) Update() error {
 	currentSpeed := len(g.aliens) * 20
+
+	// Check death timer first
+	if g.playerDead {
+		g.deathTimer.Update()
+		if g.deathTimer.IsDone() {
+			g.sceneManager.TransitionTo(SceneEndScreen)
+			return nil
+		}
+		// Don't process other game logic while player is dead
+		return nil
+	}
 
 	if !g.timer.IsRunning() {
 		g.timer.Start()
@@ -67,7 +80,7 @@ func (g *GameScene) Update() error {
 		alienHeight := g.aliens[0].Sprite[g.aliens[0].CurrentFrame].Bounds().Dy()
 		for _, alien := range g.aliens {
 			if alien.Y+alienHeight >= gameSceneHeight {
-				g.sceneManager.TransitionTo(SceneEndScreen) // Assumes SceneEnd is defined in scene_manager.go
+				g.sceneManager.TransitionTo(SceneEndScreen) // Immediate transition for aliens reaching bottom
 				return nil                            // Transitioning, no more updates for this scene
 			}
 		}
@@ -191,6 +204,8 @@ func NewGameScene(sm *SceneManager) *GameScene {
 		scoreFont:        scoreFont,
 		waveTimer:        stopwatch.NewStopwatch(3 * time.Second),
 		alienMissiles:    make([]*AlienMissile, 0),
+		deathTimer:       stopwatch.NewStopwatch(1500 * time.Millisecond), // 1.5 seconds
+		playerDead:       false,
 	}
 	return g
 }
@@ -210,13 +225,13 @@ func (g *GameScene) moveAliens() {
 	// Play Move Sound
 	moveStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.MoveSound))
 	if err != nil {
-		log.Printf("Error decoding move sound (audio/move.ogg): %v", err)
+
 		return // Don't proceed if decoding failed
 	}
 
 	moveAudioPlayer, err := g.audioContext.NewPlayer(moveStream)
 	if err != nil {
-		log.Printf("Error creating audio player for move sound: %v", err)
+
 		return // Don't proceed if player creation failed
 	}
 	moveAudioPlayer.Play()
@@ -340,6 +355,11 @@ func(g *GameScene) CheckPlayerMissileCollision() {
 }
 
 func (g *GameScene) CheckAlienMissilePlayerCollision() {
+	// Don't check collisions if player is already dead
+	if g.playerDead {
+		return
+	}
+
 	activeAlienMissiles := make([]*AlienMissile, 0, len(g.alienMissiles))
 
 	// Get player bounds
@@ -355,8 +375,24 @@ func (g *GameScene) CheckAlienMissilePlayerCollision() {
 
 		// Check if missile intersects with player
 		if missileRect.Overlaps(playerRect) {
-			// Player is hit - transition to end scene
-			g.sceneManager.TransitionTo(SceneEndScreen)
+			// Player is hit - start death timer and play death sound
+			g.playerDead = true
+			g.deathTimer.Reset()
+			g.deathTimer.Start()
+
+			// Play player death sound
+			deathStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.PlayerDeathSound))
+			if err != nil {
+				log.Printf("Error decoding player death sound: %v", err)
+			} else {
+				deathAudioPlayer, err := g.audioContext.NewPlayer(deathStream)
+				if err != nil {
+					log.Printf("Error creating audio player for death sound: %v", err)
+				} else {
+					deathAudioPlayer.Play()
+				}
+			}
+
 			return // No need to process remaining missiles
 		} else {
 			// Keep missile if no collision
