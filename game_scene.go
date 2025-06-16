@@ -101,8 +101,9 @@ func toggleDirection(current Direction) Direction {
 }
 
 func (g *GameScene) moveAliens() {
-	// Play Move Sound - create fresh player for clean audio
-	moveStream, err := vorbis.Decode(g.audioContext, bytes.NewReader(assets.MoveSound))
+	// Play Move Sound
+	// Decode the Ogg Vorbis stream, resampling it to the audio context's sample rate.
+	moveStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.MoveSound))
 	if err == nil {
 		moveAudioPlayer, err := g.audioContext.NewPlayer(moveStream)
 		if err == nil {
