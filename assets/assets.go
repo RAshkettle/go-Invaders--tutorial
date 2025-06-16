@@ -19,6 +19,8 @@ var (
 	TopInvaderAnimation    = splitImage(topInvaderSpriteSheet)
 	MiddleInvaderAnimation = splitImage(middleInvaderSpriteSheet)
 	BottomInvaderAnimation = splitImage(bottomInvaderSpriteSheet)
+
+	MoveSound = loadAudio("audio/move.ogg")
 )
 
 func loadImage(filePath string) *ebiten.Image {
@@ -34,6 +36,14 @@ func loadImage(filePath string) *ebiten.Image {
 
 	ebitenImg := ebiten.NewImageFromImage(img)
 	return ebitenImg
+}
+
+func loadAudio(filePath string) []byte {
+	data, err := assets.ReadFile(filePath)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
 
 func splitImage(spriteSheet *ebiten.Image) []*ebiten.Image {

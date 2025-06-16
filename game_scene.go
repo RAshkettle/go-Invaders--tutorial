@@ -1,31 +1,35 @@
 package main
 
 import (
+	"bytes"
+	"invaders/assets"
 	"math"
 	"time"
 
 	stopwatch "github.com/RAshkettle/Stopwatch"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 )
 
 type GameScene struct {
-	sceneManager *SceneManager
-	aliens       []*Alien
-	timer        *stopwatch.Stopwatch
+	sceneManager     *SceneManager
+	aliens           []*Alien
+	timer            *stopwatch.Stopwatch
 	currentDirection Direction
+	audioContext     *audio.Context
 }
 
 const (
 	STEP = 16
 )
 
-type Direction int 
-const(
+type Direction int
+
+const (
 	LEFT Direction = iota
 	RIGHT
 )
-
-
 
 func (g *GameScene) Update() error {
 	currentSpeed := len(g.aliens) * 20
@@ -40,8 +44,6 @@ func (g *GameScene) Update() error {
 		g.timer = stopwatch.NewStopwatch(time.Duration(currentSpeed) * time.Millisecond)
 		g.timer.Start()
 	}
-
-	
 
 	return nil
 }
@@ -74,11 +76,15 @@ func (g *GameScene) Layout(outerWidth, outerHeight int) (int, int) {
 func (g *GameScene) Reset() {}
 
 func NewGameScene(sm *SceneManager) *GameScene {
+	// Initialize audio context
+	audioContext := audio.NewContext(44100)
+
 	g := &GameScene{
-		sceneManager: sm,
-		aliens:       SpawnAlienWave(),
-		timer:        stopwatch.NewStopwatch(1 * time.Second),
+		sceneManager:     sm,
+		aliens:           SpawnAlienWave(),
+		timer:            stopwatch.NewStopwatch(1 * time.Second),
 		currentDirection: LEFT,
+		audioContext:     audioContext,
 	}
 	return g
 }
@@ -87,14 +93,23 @@ func (g *GameScene) SpawnAliens() []*Alien {
 	return SpawnAlienWave()
 }
 
-func toggleDirection(current Direction)Direction{
-	if current == LEFT{
+func toggleDirection(current Direction) Direction {
+	if current == LEFT {
 		return RIGHT
 	}
 	return LEFT
 }
 
 func (g *GameScene) moveAliens() {
+	// Play Move Sound - create fresh player for clean audio
+	moveStream, err := vorbis.DecodeWithoutResampling(bytes.NewReader(assets.MoveSound))
+	if err == nil {
+		moveAudioPlayer, err := g.audioContext.NewPlayer(moveStream)
+		if err == nil {
+			moveAudioPlayer.Play()
+		}
+	}
+
 	// Check if any alien will hit the screen boundaries
 	shouldReverse := false
 	for _, alien := range g.aliens {
@@ -111,7 +126,7 @@ func (g *GameScene) moveAliens() {
 	if shouldReverse {
 		g.currentDirection = toggleDirection(g.currentDirection)
 		for _, alien := range g.aliens {
-			alien.Y += 8 // Move down when reversing direction
+			alien.Y += 8        // Move down when reversing direction
 			alien.ToggleFrame() // Toggle animation frame
 		}
 	} else {
