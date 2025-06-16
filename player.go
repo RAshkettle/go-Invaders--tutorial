@@ -12,7 +12,14 @@ const (
 	gameWidth  = 320
 	gameHeight = 240
 	playerSpeed = 2
+	playerMissileSpeed = 3
 )
+
+type PlayerMissile struct{
+	Sprite *ebiten.Image
+	X int
+	Y int
+}
 
 type Player struct {
 	Sprite     *ebiten.Image
@@ -29,6 +36,14 @@ func NewPlayer() *Player {
 		X:          (gameWidth - playerWidth) / 2,
 		Y:          gameHeight - playerHeight - 8, // 8 pixels from the bottom
 		ShootTimer: stopwatch.NewStopwatch(2 * time.Second),
+	}
+}
+
+func NewPlayerMissile(p *Player)*PlayerMissile{
+	return &PlayerMissile{
+		Sprite: assets.PlayerShot,
+		X: p.X + 8,
+		Y: p.Y,
 	}
 }
 

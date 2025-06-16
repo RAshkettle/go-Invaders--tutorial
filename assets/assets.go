@@ -21,8 +21,10 @@ var (
 	BottomInvaderAnimation = splitImage(bottomInvaderSpriteSheet)
 
 	Player = loadImage("player/Player.png")
+	PlayerShot = loadImage("player/PlayerShot.png")
 
 	MoveSound = loadAudio("audio/move.ogg")
+	PlayerShootSound = loadAudio("audio/laserShoot.ogg")
 )
 
 func loadImage(filePath string) *ebiten.Image {

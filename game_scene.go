@@ -13,6 +13,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 )
 
+const gameSceneHeight = 240 // Height of the game area
+
 type GameScene struct {
 	sceneManager     *SceneManager
 	aliens           []*Alien
@@ -46,6 +48,18 @@ func (g *GameScene) Update() error {
 		g.moveAliens()
 		g.timer = stopwatch.NewStopwatch(time.Duration(currentSpeed) * time.Millisecond)
 		g.timer.Start()
+	}
+
+	// Check for lose condition (aliens reaching bottom)
+	if len(g.aliens) > 0 {
+		// Get alien height from the sprite. Assumes all alien sprites for CurrentFrame are same height.
+		alienHeight := g.aliens[0].Sprite[g.aliens[0].CurrentFrame].Bounds().Dy()
+		for _, alien := range g.aliens {
+			if alien.Y+alienHeight >= gameSceneHeight {
+				g.sceneManager.TransitionTo(SceneEndScreen) // Assumes SceneEnd is defined in scene_manager.go
+				return nil                            // Transitioning, no more updates for this scene
+			}
+		}
 	}
 
 	if err := g.player.Update(); err != nil {
