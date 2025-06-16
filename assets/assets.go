@@ -20,6 +20,8 @@ var (
 	MiddleInvaderAnimation = splitImage(middleInvaderSpriteSheet)
 	BottomInvaderAnimation = splitImage(bottomInvaderSpriteSheet)
 
+	Player = loadImage("player/Player.png")
+
 	MoveSound = loadAudio("audio/move.ogg")
 )
 

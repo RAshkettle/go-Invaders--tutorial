@@ -19,6 +19,7 @@ type GameScene struct {
 	timer            *stopwatch.Stopwatch
 	currentDirection Direction
 	audioContext     *audio.Context
+	player *Player
 }
 
 const (
@@ -47,7 +48,9 @@ func (g *GameScene) Update() error {
 		g.timer.Start()
 	}
 
-	
+	if err := g.player.Update(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -71,6 +74,12 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 		op.GeoM.Translate(float64(alien.X)*scale+offsetX, float64(alien.Y)*scale+offsetY)
 		screen.DrawImage(alien.Sprite[alien.CurrentFrame], op)
 	}
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(scale), float64(scale))
+	op.GeoM.Translate(float64(g.player.X)*scale+offsetX, float64(g.player.Y)*scale+offsetY)
+
+	screen.DrawImage(g.player.Sprite,op)
 }
 
 func (g *GameScene) Layout(outerWidth, outerHeight int) (int, int) {
@@ -89,6 +98,7 @@ func NewGameScene(sm *SceneManager) *GameScene {
 		timer:            stopwatch.NewStopwatch(1 * time.Second),
 		currentDirection: LEFT,
 		audioContext:     audioContext,
+		player: NewPlayer(),
 	}
 	return g
 }
