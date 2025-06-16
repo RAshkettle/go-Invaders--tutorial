@@ -23,6 +23,14 @@ const gameSceneHeight = 240 // Height of the game area
 var audioContext = audio.NewContext(44100)
 
 
+type UFO struct {
+	Sprite      *ebiten.Image
+	X           int
+	Y           int
+	Speed       int
+	FrameCounter int // For slower movement
+}
+
 type GameScene struct {
 	sceneManager     *SceneManager
 	aliens           []*Alien
@@ -36,6 +44,10 @@ type GameScene struct {
 	deathTimer       *stopwatch.Stopwatch
 	playerDead       bool
 	bases            []*Base
+	ufo              *UFO
+	ufoTimer         *stopwatch.Stopwatch
+	aliensKilled     int
+	ufoAudioPlayer   *audio.Player
 }
 
 const (
@@ -57,6 +69,11 @@ func (g *GameScene) Update() error {
 	if g.playerDead {
 		g.deathTimer.Update()
 		if g.deathTimer.IsDone() {
+			// Stop UFO sound before transitioning to end screen
+			if g.ufoAudioPlayer != nil {
+				g.ufoAudioPlayer.Pause()
+				g.ufoAudioPlayer = nil
+			}
 			g.sceneManager.TransitionTo(SceneEndScreen)
 			return nil
 		}
@@ -81,6 +98,11 @@ func (g *GameScene) Update() error {
 		alienHeight := g.aliens[0].Sprite[g.aliens[0].CurrentFrame].Bounds().Dy()
 		for _, alien := range g.aliens {
 			if alien.Y+alienHeight >= gameSceneHeight {
+				// Stop UFO sound before transitioning to end screen
+				if g.ufoAudioPlayer != nil {
+					g.ufoAudioPlayer.Pause()
+					g.ufoAudioPlayer = nil
+				}
 				g.sceneManager.TransitionTo(SceneEndScreen) // Immediate transition for aliens reaching bottom
 				return nil                            // Transitioning, no more updates for this scene
 			}
@@ -100,8 +122,28 @@ func (g *GameScene) Update() error {
 	// Check for missile-base collisions
 	g.CheckMissileBaseCollisions()
 	
-	// Check for alien-base collisions
-	g.CheckAlienBaseCollisions()
+	// Update UFO system
+	g.UpdateUFO()
+	
+	// Keep UFO sound looping while UFO exists
+	if g.ufo != nil && g.ufoAudioPlayer != nil && !g.ufoAudioPlayer.IsPlaying() {
+		g.ufoAudioPlayer.Rewind()
+		g.ufoAudioPlayer.Play()
+	}
+	
+	// Check if UFO should spawn (every 10 kills and no UFO active and no timer running)
+	if g.aliensKilled >= 10 && g.ufo == nil && (g.ufoTimer == nil || g.ufoTimer.IsDone()) {
+		g.SpawnUFO()
+	}
+	
+	// Update UFO timer
+	if g.ufoTimer != nil {
+		g.ufoTimer.Update()
+		if g.ufoTimer.IsDone() {
+			g.ufoTimer.Stop()
+			g.ufoTimer = nil
+		}
+	}
 	
 	g.CheckWaveStatus()
 	g.waveTimer.Update()
@@ -120,7 +162,7 @@ func (g *GameScene) Update() error {
 	}
 	g.alienMissiles = activeAlienMissiles
 
- 
+	g.UpdateUFO() // Update UFO position
 
 	return nil
 }
@@ -187,6 +229,14 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 		}
 	}
 
+	// Draw UFO if exists
+	if g.ufo != nil {
+		ufoOp := &ebiten.DrawImageOptions{}
+		ufoOp.GeoM.Scale(float64(scale), float64(scale))
+		ufoOp.GeoM.Translate(float64(g.ufo.X)*scale+offsetX, float64(g.ufo.Y)*scale+offsetY)
+		screen.DrawImage(g.ufo.Sprite, ufoOp)
+	}
+
 	// Draw score
 	scoreText := fmt.Sprintf("SCORE: %d", g.player.Points)
 	textOp := &text.DrawOptions{}
@@ -225,6 +275,10 @@ func NewGameScene(sm *SceneManager) *GameScene {
 		alienMissiles:    make([]*AlienMissile, 0),
 		deathTimer:       stopwatch.NewStopwatch(1500 * time.Millisecond), // 1.5 seconds
 		playerDead:       false,
+		ufo:              nil,
+		ufoTimer:         nil,
+		aliensKilled:     0,
+		ufoAudioPlayer:   nil,
 	}
 	
 	// Create bases positioned above the player
@@ -341,6 +395,7 @@ func(g *GameScene) CheckPlayerMissileCollision() {
 				g.player.Points += alien.PointsValue
 				hit = true
 				aliensHit[alien] = true
+				g.aliensKilled++ // Track total aliens killed
 
 				// Play alien explosion sound
 				explosionStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.AlienExplosionSound))
@@ -356,6 +411,43 @@ func(g *GameScene) CheckPlayerMissileCollision() {
 				}
 
 				break // This missile hit an alien, don't check other aliens
+			}
+		}
+
+		// Check UFO collision
+		if !hit && g.ufo != nil {
+			// Get UFO bounds
+			ufoRect := image.Rect(g.ufo.X, g.ufo.Y,
+				g.ufo.X+g.ufo.Sprite.Bounds().Dx(),
+				g.ufo.Y+g.ufo.Sprite.Bounds().Dy())
+
+			// Check if missile center intersects with UFO
+			if missileRect.Overlaps(ufoRect) {
+				// Add UFO points to player
+				g.player.Points += 100
+				hit = true
+
+				// Play alien explosion sound
+				explosionStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.AlienExplosionSound))
+				if err != nil {
+					log.Printf("Error decoding UFO explosion sound: %v", err)
+				} else {
+					explosionAudioPlayer, err := g.audioContext.NewPlayer(explosionStream)
+					if err != nil {
+						log.Printf("Error creating audio player for UFO explosion sound: %v", err)
+					} else {
+						explosionAudioPlayer.Play()
+					}
+				}
+
+				// Remove UFO and start timer for next one
+				g.ufo = nil
+				// Stop UFO sound
+				if g.ufoAudioPlayer != nil {
+					g.ufoAudioPlayer.Pause()
+					g.ufoAudioPlayer = nil
+				}
+				g.StartUFOTimer()
 			}
 		}
 
@@ -535,22 +627,79 @@ func (g *GameScene) CheckAlienBaseCollisions() {
 		alienRect := image.Rect(alien.X, alien.Y,
 			alien.X+alien.Sprite[alien.CurrentFrame].Bounds().Dx(),
 			alien.Y+alien.Sprite[alien.CurrentFrame].Bounds().Dy())
-		
+
 		for _, base := range g.bases {
 			for _, block := range base.Blocks {
 				if !block.Exists {
 					continue
 				}
-				
+
 				// Get block bounds (accounting for 50% scale)
 				blockRect := image.Rect(block.X, block.Y, block.X+8, block.Y+8)
-				
+
 				if alienRect.Overlaps(blockRect) {
-					// Alien collides with base block - destroy the block immediately
+					// Immediately destroy the block when alien touches it
 					block.Exists = false
-					// Alien is not harmed and continues moving
 				}
 			}
 		}
 	}
+}
+
+func NewUFO() *UFO {
+	return &UFO{
+		Sprite:       assets.UFO,
+		X:            320, // Start at right edge of screen
+		Y:            16,  // 16 pixels from top
+		Speed:        1,   // Just slightly slower than player (player speed is 2)
+		FrameCounter: 0,
+	}
+}
+
+func (g *GameScene) SpawnUFO() {
+	if g.ufo == nil {
+		g.ufo = NewUFO()
+		
+		// Start playing UFO sound at 50% volume, looping
+		ufoStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.UFOSound))
+		if err != nil {
+			log.Printf("Error decoding UFO sound: %v", err)
+		} else {
+			g.ufoAudioPlayer, err = g.audioContext.NewPlayer(ufoStream)
+			if err != nil {
+				log.Printf("Error creating UFO audio player: %v", err)
+			} else {
+				g.ufoAudioPlayer.SetVolume(0.5) // 50% volume
+				g.ufoAudioPlayer.Play()
+			}
+		}
+	}
+}
+
+func (g *GameScene) UpdateUFO() {
+	if g.ufo != nil {
+		g.ufo.FrameCounter++
+		// Move only every other frame (50% slower)
+		if g.ufo.FrameCounter%2 == 0 {
+			g.ufo.X -= g.ufo.Speed
+		}
+		
+		// Remove UFO if it goes off the left side of screen
+		if g.ufo.X+g.ufo.Sprite.Bounds().Dx() < 0 {
+			g.ufo = nil
+			// Stop UFO sound
+			if g.ufoAudioPlayer != nil {
+				g.ufoAudioPlayer.Pause()
+				g.ufoAudioPlayer = nil
+			}
+			g.StartUFOTimer()
+		}
+	}
+}
+
+func (g *GameScene) StartUFOTimer() {
+	// Random duration between 10-30 seconds
+	duration := time.Duration(10+rand.Intn(21)) * time.Second
+	g.ufoTimer = stopwatch.NewStopwatch(duration)
+	g.ufoTimer.Start()
 }

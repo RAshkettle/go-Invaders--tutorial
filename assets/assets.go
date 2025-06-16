@@ -23,6 +23,7 @@ var (
 	Player = loadImage("player/Player.png")
 	PlayerShot = loadImage("player/PlayerShot.png")
 	AlienShot = loadImage("invaders/AlienShot.png")
+	UFO = loadImage("invaders/ufo.png")
 
 	baseSpriteSheet = loadImage("player/base.png")
 	BaseSprites = splitBaseImage(baseSpriteSheet)
@@ -31,6 +32,7 @@ var (
 	PlayerShootSound = loadAudio("audio/laserShoot.ogg")
 	AlienExplosionSound = loadAudio("audio/alienexplosion.ogg")
 	PlayerDeathSound = loadAudio("audio/playerDeath.ogg")
+	UFOSound = loadAudio("audio/ufo.ogg")
 )
 
 func loadImage(filePath string) *ebiten.Image {
