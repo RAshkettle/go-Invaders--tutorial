@@ -3,13 +3,14 @@ package main
 import (
 	"bytes"
 	"invaders/assets"
+	"log" // Added for logging
 	"math"
 	"time"
 
 	stopwatch "github.com/RAshkettle/Stopwatch"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
-	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 )
 
 type GameScene struct {
@@ -104,14 +105,19 @@ func toggleDirection(current Direction)Direction{
 }
 
 func (g *GameScene) moveAliens() {
-	// Play Move Sound - create fresh player for clean audio
-	moveStream, err := mp3.DecodeWithoutResampling(bytes.NewReader(assets.MoveSound))
-	if err == nil {
-		moveAudioPlayer, err := g.audioContext.NewPlayer(moveStream)
-		if err == nil {
-			moveAudioPlayer.Play()
-		}
+	// Play Move Sound
+	moveStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.MoveSound))
+	if err != nil {
+		log.Printf("Error decoding move sound (audio/move.ogg): %v", err)
+		return // Don't proceed if decoding failed
 	}
+
+	moveAudioPlayer, err := g.audioContext.NewPlayer(moveStream)
+	if err != nil {
+		log.Printf("Error creating audio player for move sound: %v", err)
+		return // Don't proceed if player creation failed
+	}
+	moveAudioPlayer.Play()
 
 	// Check if any alien will hit the screen boundaries
 	shouldReverse := false
