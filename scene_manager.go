@@ -20,8 +20,8 @@ type SceneManager struct {
 	currentScene Scene
 	sceneType    SceneType
 	titleScene   *TitleScene
-	gameScene    *gameScene
-	endScene     *endScene
+	gameScene    *GameScene
+	endScene     *EndScene
 }
 
 func (sm *SceneManager) Update() error {
