@@ -8,6 +8,7 @@ import (
 	"invaders/assets"
 	"log" // Added for logging
 	"math"
+	"math/rand"
 	"time"
 
 	stopwatch "github.com/RAshkettle/Stopwatch"
@@ -30,7 +31,8 @@ type GameScene struct {
 	audioContext     *audio.Context
 	player           *Player
 	scoreFont        *text.GoTextFace
-	waveTimer *stopwatch.Stopwatch
+	waveTimer        *stopwatch.Stopwatch
+	alienMissiles    []*AlienMissile
 }
 
 const (
@@ -77,12 +79,26 @@ func (g *GameScene) Update() error {
 
 	// Check for missile-alien collisions
 	g.CheckPlayerMissileCollision()
-  g.CheckWaveStatus()
+	
+	// Check for alien missile-player collisions
+	g.CheckAlienMissilePlayerCollision()
+	
+	g.CheckWaveStatus()
 	g.waveTimer.Update()
 	if g.waveTimer.IsDone() {
 		g.waveTimer.Stop()
 		g.aliens = SpawnAlienWave()
 	}
+
+	// Update alien missiles
+	activeAlienMissiles := make([]*AlienMissile, 0, len(g.alienMissiles))
+	for _, missile := range g.alienMissiles {
+		missile.Y += 1 // Move missile down at speed 1
+		if missile.Y < gameSceneHeight { // Keep missile if still on screen
+			activeAlienMissiles = append(activeAlienMissiles, missile)
+		}
+	}
+	g.alienMissiles = activeAlienMissiles
 
  
 
@@ -131,12 +147,20 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 		screen.DrawImage(missile.Sprite, missileOp)
 	}
 
+	// Draw alien missiles
+	for _, missile := range g.alienMissiles {
+		missileOp := &ebiten.DrawImageOptions{}
+		missileOp.GeoM.Scale(float64(scale), float64(scale))
+		missileOp.GeoM.Translate(float64(missile.X)*scale+offsetX, float64(missile.Y)*scale+offsetY)
+		screen.DrawImage(missile.Sprite, missileOp)
+	}
+
 	// Draw score
 	scoreText := fmt.Sprintf("SCORE: %d", g.player.Points)
 	textOp := &text.DrawOptions{}
 	textOp.GeoM.Scale(float64(scale), float64(scale))
-	textOp.GeoM.Translate(offsetX+10*scale, offsetY+10*scale) // Top-left corner with some padding
-	textOp.ColorScale.ScaleWithColor(color.RGBA{255, 255, 255, 255}) // White text
+	textOp.GeoM.Translate(offsetX+15*scale, offsetY+15*scale) // Increased padding for better positioning
+	textOp.ColorScale.ScaleWithColor(color.RGBA{220, 220, 255, 255}) // Light blue-white color for better contrast
 	text.Draw(screen, scoreText, g.scoreFont, textOp)
 }
 
@@ -154,7 +178,7 @@ func NewGameScene(sm *SceneManager) *GameScene {
 	scoreFontSource, _ := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	scoreFont := &text.GoTextFace{
 		Source: scoreFontSource,
-		Size:   8, // Changed from 16 to 8
+		Size:   8,
 	}
 
 	g := &GameScene{
@@ -165,7 +189,8 @@ func NewGameScene(sm *SceneManager) *GameScene {
 		audioContext:     audioContext,
 		player:           NewPlayer(),
 		scoreFont:        scoreFont,
-		waveTimer: stopwatch.NewStopwatch(3 * time.Second),
+		waveTimer:        stopwatch.NewStopwatch(3 * time.Second),
+		alienMissiles:    make([]*AlienMissile, 0),
 	}
 	return g
 }
@@ -224,6 +249,23 @@ func (g *GameScene) moveAliens() {
 				alien.X += 8
 			}
 			alien.ToggleFrame() // Toggle animation frame
+		}
+	}
+
+	// Check for SquidAlien shooting (10% chance per movement)
+	for _, alien := range g.aliens {
+		// Only allow shooting if we have less than 3 missiles active
+		if alien.AlienType == SquidAlien && rand.Float64() < 0.1 && len(g.alienMissiles) < 3 {
+			// Create new alien missile
+			missileX := alien.X + alien.Sprite[alien.CurrentFrame].Bounds().Dx()/2 - assets.AlienShot.Bounds().Dx()/2
+			missileY := alien.Y + alien.Sprite[alien.CurrentFrame].Bounds().Dy()
+			
+			newAlienMissile := &AlienMissile{
+				Sprite: assets.AlienShot,
+				X:      missileX,
+				Y:      missileY,
+			}
+			g.alienMissiles = append(g.alienMissiles, newAlienMissile)
 		}
 	}
 }
@@ -295,4 +337,33 @@ func(g *GameScene) CheckPlayerMissileCollision() {
 	// Update the slices with only active (non-collided) objects
 	g.player.Missiles = activeMissiles
 	g.aliens = activeAliens
+}
+
+func (g *GameScene) CheckAlienMissilePlayerCollision() {
+	activeAlienMissiles := make([]*AlienMissile, 0, len(g.alienMissiles))
+
+	// Get player bounds
+	playerRect := image.Rect(g.player.X, g.player.Y, 
+		g.player.X+g.player.Sprite.Bounds().Dx(), 
+		g.player.Y+g.player.Sprite.Bounds().Dy())
+
+	for _, missile := range g.alienMissiles {
+		// Get missile bounds
+		missileRect := image.Rect(missile.X, missile.Y,
+			missile.X+missile.Sprite.Bounds().Dx(),
+			missile.Y+missile.Sprite.Bounds().Dy())
+
+		// Check if missile intersects with player
+		if missileRect.Overlaps(playerRect) {
+			// Player is hit - transition to end scene
+			g.sceneManager.TransitionTo(SceneEndScreen)
+			return // No need to process remaining missiles
+		} else {
+			// Keep missile if no collision
+			activeAlienMissiles = append(activeAlienMissiles, missile)
+		}
+	}
+
+	// Update alien missiles slice
+	g.alienMissiles = activeAlienMissiles
 }

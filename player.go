@@ -27,6 +27,12 @@ type PlayerMissile struct {
 	Y      int
 }
 
+type AlienMissile struct {
+	Sprite *ebiten.Image
+	X      int
+	Y      int
+}
+
 type Player struct {
 	Sprite     *ebiten.Image
 	X          int

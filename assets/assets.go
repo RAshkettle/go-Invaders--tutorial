@@ -22,6 +22,7 @@ var (
 
 	Player = loadImage("player/Player.png")
 	PlayerShot = loadImage("player/PlayerShot.png")
+	AlienShot = loadImage("invaders/AlienShot.png")
 
 	MoveSound = loadAudio("audio/move.ogg")
 	PlayerShootSound = loadAudio("audio/laserShoot.ogg")
