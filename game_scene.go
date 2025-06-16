@@ -2,20 +2,49 @@ package main
 
 import (
 	"math"
+	"time"
 
+	stopwatch "github.com/RAshkettle/Stopwatch"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type GameScene struct {
 	sceneManager *SceneManager
 	aliens       []*Alien
+	timer        *stopwatch.Stopwatch
+	currentDirection Direction
 }
 
 const (
 	STEP = 16
 )
 
-func (g *GameScene) Update() error { return nil }
+type Direction int 
+const(
+	LEFT Direction = iota
+	RIGHT
+)
+
+
+
+func (g *GameScene) Update() error {
+	currentSpeed := len(g.aliens) * 20
+
+	if !g.timer.IsRunning() {
+		g.timer.Start()
+	}
+	g.timer.Update()
+	if g.timer.IsDone() {
+		// This is when we animate and Move
+		g.moveAliens()
+		g.timer = stopwatch.NewStopwatch(time.Duration(currentSpeed) * time.Millisecond)
+		g.timer.Start()
+	}
+
+	
+
+	return nil
+}
 
 func (g *GameScene) Draw(screen *ebiten.Image) {
 	width, height := ebiten.WindowSize()
@@ -34,7 +63,7 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 
 		op.GeoM.Scale(float64(scale), float64(scale))
 		op.GeoM.Translate(float64(alien.X)*scale+offsetX, float64(alien.Y)*scale+offsetY)
-		screen.DrawImage(alien.Sprite[0], op)
+		screen.DrawImage(alien.Sprite[alien.CurrentFrame], op)
 	}
 }
 
@@ -45,12 +74,55 @@ func (g *GameScene) Layout(outerWidth, outerHeight int) (int, int) {
 func (g *GameScene) Reset() {}
 
 func NewGameScene(sm *SceneManager) *GameScene {
-	return &GameScene{
+	g := &GameScene{
 		sceneManager: sm,
 		aliens:       SpawnAlienWave(),
+		timer:        stopwatch.NewStopwatch(1 * time.Second),
+		currentDirection: LEFT,
 	}
+	return g
 }
 
 func (g *GameScene) SpawnAliens() []*Alien {
 	return SpawnAlienWave()
+}
+
+func toggleDirection(current Direction)Direction{
+	if current == LEFT{
+		return RIGHT
+	}
+	return LEFT
+}
+
+func (g *GameScene) moveAliens() {
+	// Check if any alien will hit the screen boundaries
+	shouldReverse := false
+	for _, alien := range g.aliens {
+		if g.currentDirection == LEFT && alien.X-8 <= 0 {
+			shouldReverse = true
+			break
+		} else if g.currentDirection == RIGHT && alien.X+8 >= 320-ALIEN_SIZE {
+			shouldReverse = true
+			break
+		}
+	}
+
+	// If we need to reverse direction, do it and move down
+	if shouldReverse {
+		g.currentDirection = toggleDirection(g.currentDirection)
+		for _, alien := range g.aliens {
+			alien.Y += 8 // Move down when reversing direction
+			alien.ToggleFrame() // Toggle animation frame
+		}
+	} else {
+		// Move aliens horizontally
+		for _, alien := range g.aliens {
+			if g.currentDirection == LEFT {
+				alien.X -= 8
+			} else {
+				alien.X += 8
+			}
+			alien.ToggleFrame() // Toggle animation frame
+		}
+	}
 }

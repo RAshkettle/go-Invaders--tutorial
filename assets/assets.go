@@ -40,7 +40,7 @@ func splitImage(spriteSheet *ebiten.Image) []*ebiten.Image {
 	const invaderSize = 16
 
 	firstFrame := spriteSheet.SubImage(image.Rect(0, 0, invaderSize, invaderSize)).(*ebiten.Image)
-	secondFrame := spriteSheet.SubImage(image.Rect(invaderSize, 0, invaderSize, invaderSize)).(*ebiten.Image)
+	secondFrame := spriteSheet.SubImage(image.Rect(invaderSize, 0, invaderSize*2, invaderSize)).(*ebiten.Image)
 
 	return []*ebiten.Image{firstFrame, secondFrame}
 }
