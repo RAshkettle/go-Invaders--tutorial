@@ -25,6 +25,7 @@ var (
 
 	MoveSound = loadAudio("audio/move.ogg")
 	PlayerShootSound = loadAudio("audio/laserShoot.ogg")
+	AlienExplosionSound = loadAudio("audio/alienexplosion.ogg")
 )
 
 func loadImage(filePath string) *ebiten.Image {

@@ -55,14 +55,14 @@ func (t *EndScene) Update() error {
 		inpututil.IsKeyJustPressed(ebiten.KeyS) ||
 		inpututil.IsKeyJustPressed(ebiten.KeyD) ||
 		inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		t.sceneManager.gameScene.Reset()
+		t.sceneManager.gameScene = NewGameScene(t.sceneManager)
 		t.sceneManager.TransitionTo(SceneGame)
 		return nil
 	}
 	// Check for mouse clicks
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) ||
 		inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
-		t.sceneManager.gameScene.Reset()
+			t.sceneManager.gameScene = NewGameScene(t.sceneManager)
 		t.sceneManager.TransitionTo(SceneGame)
 		return nil
 	}

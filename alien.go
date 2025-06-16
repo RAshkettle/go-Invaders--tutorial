@@ -26,8 +26,8 @@ type Alien struct {
 func NewAlien(a AlienType) *Alien {
 	return  &Alien{
 		Sprite:       GetAlienSpriteByType(a),
-		PointsValue:  40,
-		AlienType:    AlienType(getAlienPointsByType(a)),
+		PointsValue:  getAlienPointsByType(a),
+		AlienType:    AlienType(a),
 		CurrentFrame: 0,
 	}
 

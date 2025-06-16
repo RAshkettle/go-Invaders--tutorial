@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"image"
+	"image/color"
 	"invaders/assets"
 	"log" // Added for logging
 	"math"
@@ -12,9 +14,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 const gameSceneHeight = 240 // Height of the game area
+var audioContext = audio.NewContext(44100)
+
 
 type GameScene struct {
 	sceneManager     *SceneManager
@@ -22,7 +28,9 @@ type GameScene struct {
 	timer            *stopwatch.Stopwatch
 	currentDirection Direction
 	audioContext     *audio.Context
-	player *Player
+	player           *Player
+	scoreFont        *text.GoTextFace
+	waveTimer *stopwatch.Stopwatch
 }
 
 const (
@@ -69,9 +77,25 @@ func (g *GameScene) Update() error {
 
 	// Check for missile-alien collisions
 	g.CheckPlayerMissileCollision()
+  g.CheckWaveStatus()
+	g.waveTimer.Update()
+	if g.waveTimer.IsDone() {
+		g.waveTimer.Stop()
+		g.aliens = SpawnAlienWave()
+	}
+
+ 
 
 	return nil
 }
+
+func (g *GameScene)CheckWaveStatus(){
+	if len(g.aliens) == 0 && !g.waveTimer.IsRunning(){
+		g.waveTimer.Reset()
+		g.waveTimer.Start()
+	}
+}
+
 
 func (g *GameScene) Draw(screen *ebiten.Image) {
 	width, height := ebiten.WindowSize()
@@ -106,17 +130,32 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 		missileOp.GeoM.Translate(float64(missile.X)*scale+offsetX, float64(missile.Y)*scale+offsetY)
 		screen.DrawImage(missile.Sprite, missileOp)
 	}
+
+	// Draw score
+	scoreText := fmt.Sprintf("SCORE: %d", g.player.Points)
+	textOp := &text.DrawOptions{}
+	textOp.GeoM.Scale(float64(scale), float64(scale))
+	textOp.GeoM.Translate(offsetX+10*scale, offsetY+10*scale) // Top-left corner with some padding
+	textOp.ColorScale.ScaleWithColor(color.RGBA{255, 255, 255, 255}) // White text
+	text.Draw(screen, scoreText, g.scoreFont, textOp)
 }
 
 func (g *GameScene) Layout(outerWidth, outerHeight int) (int, int) {
 	return outerWidth, outerHeight
 }
 
-func (g *GameScene) Reset() {}
+
 
 func NewGameScene(sm *SceneManager) *GameScene {
 	// Initialize audio context
-	audioContext := audio.NewContext(44100)
+	
+
+	// Create score font
+	scoreFontSource, _ := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	scoreFont := &text.GoTextFace{
+		Source: scoreFontSource,
+		Size:   8, // Changed from 16 to 8
+	}
 
 	g := &GameScene{
 		sceneManager:     sm,
@@ -124,7 +163,9 @@ func NewGameScene(sm *SceneManager) *GameScene {
 		timer:            stopwatch.NewStopwatch(1 * time.Second),
 		currentDirection: LEFT,
 		audioContext:     audioContext,
-		player: NewPlayer(),
+		player:           NewPlayer(),
+		scoreFont:        scoreFont,
+		waveTimer: stopwatch.NewStopwatch(3 * time.Second),
 	}
 	return g
 }
@@ -220,6 +261,20 @@ func(g *GameScene) CheckPlayerMissileCollision() {
 				g.player.Points += alien.PointsValue
 				hit = true
 				aliensHit[alien] = true
+
+				// Play alien explosion sound
+				explosionStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.AlienExplosionSound))
+				if err != nil {
+					log.Printf("Error decoding alien explosion sound: %v", err)
+				} else {
+					explosionAudioPlayer, err := g.audioContext.NewPlayer(explosionStream)
+					if err != nil {
+						log.Printf("Error creating audio player for explosion sound: %v", err)
+					} else {
+						explosionAudioPlayer.Play()
+					}
+				}
+
 				break // This missile hit an alien, don't check other aliens
 			}
 		}
