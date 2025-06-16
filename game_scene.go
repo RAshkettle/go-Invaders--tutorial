@@ -100,6 +100,9 @@ func (g *GameScene) Update() error {
 	// Check for missile-base collisions
 	g.CheckMissileBaseCollisions()
 	
+	// Check for alien-base collisions
+	g.CheckAlienBaseCollisions()
+	
 	g.CheckWaveStatus()
 	g.waveTimer.Update()
 	if g.waveTimer.IsDone() {
@@ -524,4 +527,30 @@ func (g *GameScene) CheckMissileBaseCollisions() {
 		}
 	}
 	g.alienMissiles = activeAlienMissiles
+}
+
+func (g *GameScene) CheckAlienBaseCollisions() {
+	for _, alien := range g.aliens {
+		// Get alien bounds
+		alienRect := image.Rect(alien.X, alien.Y,
+			alien.X+alien.Sprite[alien.CurrentFrame].Bounds().Dx(),
+			alien.Y+alien.Sprite[alien.CurrentFrame].Bounds().Dy())
+		
+		for _, base := range g.bases {
+			for _, block := range base.Blocks {
+				if !block.Exists {
+					continue
+				}
+				
+				// Get block bounds (accounting for 50% scale)
+				blockRect := image.Rect(block.X, block.Y, block.X+8, block.Y+8)
+				
+				if alienRect.Overlaps(blockRect) {
+					// Alien collides with base block - destroy the block immediately
+					block.Exists = false
+					// Alien is not harmed and continues moving
+				}
+			}
+		}
+	}
 }
