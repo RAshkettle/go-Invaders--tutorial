@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"image"
 	"invaders/assets"
 	"log" // Added for logging
 	"math"
@@ -65,6 +66,9 @@ func (g *GameScene) Update() error {
 	if err := g.player.Update(g.audioContext); err != nil {
 		return err
 	}
+
+	// Check for missile-alien collisions
+	g.CheckPlayerMissileCollision()
 
 	return nil
 }
@@ -181,4 +185,59 @@ func (g *GameScene) moveAliens() {
 			alien.ToggleFrame() // Toggle animation frame
 		}
 	}
+}
+
+
+func(g *GameScene) CheckPlayerMissileCollision() {
+	activeMissiles := make([]*PlayerMissile, 0, len(g.player.Missiles))
+	activeAliens := make([]*Alien, 0, len(g.aliens))
+
+	// Track which aliens were hit
+	aliensHit := make(map[*Alien]bool)
+
+	for _, missile := range g.player.Missiles {
+		hit := false
+		
+		// Get missile center point (only center 2 pixels)
+		missileX := missile.X + missile.Sprite.Bounds().Dx()/2 - 1
+		missileY := missile.Y + missile.Sprite.Bounds().Dy()/2 - 1
+		missileRect := image.Rect(missileX, missileY, missileX+2, missileY+2)
+
+		for _, alien := range g.aliens {
+			// Skip if this alien was already hit
+			if aliensHit[alien] {
+				continue
+			}
+
+			// Get alien sprite bounds
+			alienRect := image.Rect(alien.X, alien.Y, 
+				alien.X+alien.Sprite[alien.CurrentFrame].Bounds().Dx(), 
+				alien.Y+alien.Sprite[alien.CurrentFrame].Bounds().Dy())
+
+			// Check if missile center intersects with alien
+			if missileRect.Overlaps(alienRect) {
+				// Add alien points to player
+				g.player.Points += alien.PointsValue
+				hit = true
+				aliensHit[alien] = true
+				break // This missile hit an alien, don't check other aliens
+			}
+		}
+
+		// Only keep missile if it didn't hit anything
+		if !hit {
+			activeMissiles = append(activeMissiles, missile)
+		}
+	}
+
+	// Build active aliens list (only aliens that weren't hit)
+	for _, alien := range g.aliens {
+		if !aliensHit[alien] {
+			activeAliens = append(activeAliens, alien)
+		}
+	}
+
+	// Update the slices with only active (non-collided) objects
+	g.player.Missiles = activeMissiles
+	g.aliens = activeAliens
 }

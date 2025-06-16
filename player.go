@@ -33,6 +33,7 @@ type Player struct {
 	Y          int
 	ShootTimer *stopwatch.Stopwatch
 	Missiles   []*PlayerMissile // Slice to hold active missiles
+	Points int
 }
 
 func NewPlayer() *Player {
@@ -44,6 +45,7 @@ func NewPlayer() *Player {
 		Y:          gameHeight - playerHeight - 8, // 8 pixels from the bottom
 		ShootTimer: stopwatch.NewStopwatch(playerShootCooldown),
 		Missiles:   make([]*PlayerMissile, 0), // Initialize missile slice
+		Points: 0,
 	}
 }
 

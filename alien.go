@@ -24,11 +24,25 @@ type Alien struct {
 }
 
 func NewAlien(a AlienType) *Alien {
-	return &Alien{
+	return  &Alien{
 		Sprite:       GetAlienSpriteByType(a),
 		PointsValue:  40,
-		AlienType:    a,
+		AlienType:    AlienType(getAlienPointsByType(a)),
 		CurrentFrame: 0,
+	}
+
+}
+
+func getAlienPointsByType(a AlienType) int{
+	switch a{
+	case SquidAlien:
+			return 40
+	case ArmAlien:
+		return 20
+	case FootAlien:
+		return 10
+	default:
+		return 10 // Default to FootAlien points
 	}
 }
 
