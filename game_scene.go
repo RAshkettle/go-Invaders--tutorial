@@ -74,7 +74,7 @@ func (g *GameScene) Update() error {
 					g.ufoAudioPlayer.Pause()
 					g.ufoAudioPlayer = nil
 				}
-				g.sceneManager.TransitionTo(SceneEndScreen)
+				g.sceneManager.TransitionToEndScreen(g.player.Points)
 				return nil
 			} else {
 				// Player has lives remaining - respawn
@@ -257,7 +257,7 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 	livesTextOp.GeoM.Scale(float64(scale), float64(scale))
 	// Position at top right - calculate text width and position accordingly
 	livesTextBounds, _ := text.Measure(livesText, g.scoreFont, 0)
-	livesTextOp.GeoM.Translate(offsetX+gameWidth-livesTextBounds-15*scale, offsetY+15*scale)
+	livesTextOp.GeoM.Translate(offsetX+gameWidth-livesTextBounds-23*scale, offsetY+15*scale)
 	livesTextOp.ColorScale.ScaleWithColor(color.RGBA{220, 220, 255, 255})
 	text.Draw(screen, livesText, g.scoreFont, livesTextOp)
 }
@@ -509,6 +509,9 @@ func (g *GameScene) CheckAlienMissilePlayerCollision() {
 			g.deathTimer.Reset()
 			g.deathTimer.Start()
 
+			// Clear all alien missiles to prevent instant death on respawn
+			g.alienMissiles = make([]*AlienMissile, 0)
+
 			// Play player death sound
 			deathStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.PlayerDeathSound))
 			if err != nil {
@@ -522,7 +525,8 @@ func (g *GameScene) CheckAlienMissilePlayerCollision() {
 				}
 			}
 
-			return // No need to process remaining missiles
+			// Return early since we cleared all missiles
+			return
 		} else {
 			// Keep missile if no collision
 			activeAlienMissiles = append(activeAlienMissiles, missile)

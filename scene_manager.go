@@ -49,6 +49,12 @@ func (sm *SceneManager) TransitionTo(sceneType SceneType) {
 	}
 }
 
+func (sm *SceneManager) TransitionToEndScreen(finalScore int) {
+	sm.sceneType = SceneEndScreen
+	sm.endScene = NewEndScene(sm, finalScore)
+	sm.currentScene = sm.endScene
+}
+
 func (sm *SceneManager) GetCurrentSceneType() SceneType {
 	return sm.sceneType
 }
@@ -60,7 +66,7 @@ func NewSceneManager() *SceneManager {
 
 	sm.titleScene = NewTitleScene(sm)
 	sm.gameScene = NewGameScene(sm)
-	sm.endScene = NewEndScene(sm)
+	sm.endScene = NewEndScene(sm, 0) // Default score of 0
 
 	sm.currentScene = sm.titleScene
 

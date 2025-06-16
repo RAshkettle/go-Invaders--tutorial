@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -14,6 +15,7 @@ type EndScene struct {
 	sceneManager *SceneManager
 	titleFont    *text.GoTextFace
 	subtitleFont *text.GoTextFace
+	finalScore   int
 }
 
 func (t *EndScene) Draw(screen *ebiten.Image) {
@@ -34,11 +36,22 @@ func (t *EndScene) Draw(screen *ebiten.Image) {
 	op.ColorScale.ScaleWithColor(color.RGBA{255, 100, 100, 255}) // Light red text
 	text.Draw(screen, titleText, t.titleFont, op)
 
+	// Draw final score
+	scoreText := fmt.Sprintf("Final Score: %d", t.finalScore)
+	scoreBounds, _ := text.Measure(scoreText, t.subtitleFont, 0)
+	scoreX := (w - int(scoreBounds)) / 2
+	scoreY := titleY + 50
+
+	op3 := &text.DrawOptions{}
+	op3.GeoM.Translate(float64(scoreX), float64(scoreY))
+	op3.ColorScale.ScaleWithColor(color.RGBA{255, 200, 100, 255}) // Golden color for score
+	text.Draw(screen, scoreText, t.subtitleFont, op3)
+
 	// Draw restart instruction
 	subtitleText := "Press any key to restart"
 	subtitleBounds, _ := text.Measure(subtitleText, t.subtitleFont, 0)
 	subtitleX := (w - int(subtitleBounds)) / 2
-	subtitleY := titleY + 80
+	subtitleY := titleY + 100
 
 	op2 := &text.DrawOptions{}
 	op2.GeoM.Translate(float64(subtitleX), float64(subtitleY))
@@ -73,7 +86,7 @@ func (t *EndScene) Layout(outerWidth, outerHeight int) (int, int) {
 	return outerWidth, outerHeight
 }
 
-func NewEndScene(sm *SceneManager) *EndScene {
+func NewEndScene(sm *SceneManager, finalScore int) *EndScene {
 	// Create fonts (same pattern as TitleScene)
 	titleFontSource, _ := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
 	titleFont := &text.GoTextFace{
@@ -91,5 +104,6 @@ func NewEndScene(sm *SceneManager) *EndScene {
 		sceneManager: sm,
 		titleFont:    titleFont,
 		subtitleFont: subtitleFont,
+		finalScore:   finalScore,
 	}
 }
