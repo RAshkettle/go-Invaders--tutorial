@@ -63,9 +63,6 @@ func GetAlienSpriteByType(a AlienType) []*ebiten.Image {
 	}
 }
 
-func (a *Alien) Update() error {
-	return nil
-}
 
 // ToggleFrame switches between animation frames (0 and 1)
 func (a *Alien) ToggleFrame() {
@@ -92,7 +89,7 @@ func SpawnAlienWave() []*Alien {
 		alien.X = (i * ALIEN_SIZE) + PADDING
 		alien.Y = ALIEN_SIZE * 3
 		aliens = append(aliens, alien)
-
+		//Make the bottom row dudes
 		alien = NewAlien(FootAlien)
 		alien.X = (i * ALIEN_SIZE) + PADDING
 		alien.Y = ALIEN_SIZE * 4
