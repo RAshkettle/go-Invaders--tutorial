@@ -35,6 +35,7 @@ type GameScene struct {
 	alienMissiles    []*AlienMissile
 	deathTimer       *stopwatch.Stopwatch
 	playerDead       bool
+	bases            []*Base
 }
 
 const (
@@ -168,6 +169,18 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 		screen.DrawImage(missile.Sprite, missileOp)
 	}
 
+	// Draw bases
+	for _, base := range g.bases {
+		for _, block := range base.Blocks {
+			if block.Exists {
+				blockOp := &ebiten.DrawImageOptions{}
+				blockOp.GeoM.Scale(float64(scale)*0.5, float64(scale)*0.5) // Scale blocks down by 50%
+				blockOp.GeoM.Translate(float64(block.X)*scale+offsetX, float64(block.Y)*scale+offsetY)
+				screen.DrawImage(block.Sprite, blockOp)
+			}
+		}
+	}
+
 	// Draw score
 	scoreText := fmt.Sprintf("SCORE: %d", g.player.Points)
 	textOp := &text.DrawOptions{}
@@ -207,6 +220,10 @@ func NewGameScene(sm *SceneManager) *GameScene {
 		deathTimer:       stopwatch.NewStopwatch(1500 * time.Millisecond), // 1.5 seconds
 		playerDead:       false,
 	}
+	
+	// Create bases positioned above the player
+	g.bases = CreateBases(g.player.Y)
+	
 	return g
 }
 
