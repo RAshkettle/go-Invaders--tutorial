@@ -62,7 +62,7 @@ func (g *GameScene) Update() error {
 		}
 	}
 
-	if err := g.player.Update(); err != nil {
+	if err := g.player.Update(g.audioContext); err != nil {
 		return err
 	}
 
@@ -94,6 +94,14 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(float64(g.player.X)*scale+offsetX, float64(g.player.Y)*scale+offsetY)
 
 	screen.DrawImage(g.player.Sprite,op)
+
+	// Draw player missiles
+	for _, missile := range g.player.Missiles {
+		missileOp := &ebiten.DrawImageOptions{}
+		missileOp.GeoM.Scale(float64(scale), float64(scale))
+		missileOp.GeoM.Translate(float64(missile.X)*scale+offsetX, float64(missile.Y)*scale+offsetY)
+		screen.DrawImage(missile.Sprite, missileOp)
+	}
 }
 
 func (g *GameScene) Layout(outerWidth, outerHeight int) (int, int) {
