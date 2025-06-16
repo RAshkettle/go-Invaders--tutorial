@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	gameWidth          = 320
-	gameHeight         = 240
-	playerSpeed        = 2
-	playerMissileSpeed = 3
+	gameWidth           = 320
+	gameHeight          = 240
+	playerSpeed         = 2
+	playerMissileSpeed  = 3
 	playerShootCooldown = 500 * time.Millisecond // Cooldown for shooting
 )
 
@@ -39,7 +39,7 @@ type Player struct {
 	Y          int
 	ShootTimer *stopwatch.Stopwatch
 	Missiles   []*PlayerMissile // Slice to hold active missiles
-	Points int
+	Points     int
 }
 
 func NewPlayer() *Player {
@@ -51,7 +51,7 @@ func NewPlayer() *Player {
 		Y:          gameHeight - playerHeight - 8, // 8 pixels from the bottom
 		ShootTimer: stopwatch.NewStopwatch(playerShootCooldown),
 		Missiles:   make([]*PlayerMissile, 0), // Initialize missile slice
-		Points: 0,
+		Points:     0,
 	}
 }
 
@@ -61,7 +61,7 @@ func NewPlayerMissile(p *Player) *PlayerMissile {
 	playerWidth := p.Sprite.Bounds().Dx()
 	return &PlayerMissile{
 		Sprite: assets.PlayerShot,
-		X:      p.X + (playerWidth/2) - (missileWidth/2),
+		X:      p.X + (playerWidth / 2) - (missileWidth / 2),
 		Y:      p.Y,
 	}
 }
@@ -124,7 +124,3 @@ func (p *Player) Update(audioContext *audio.Context) error {
 
 	return nil
 }
-
-
-
-

@@ -7,11 +7,11 @@ import (
 )
 
 type BaseBlock struct {
-	Sprite       *ebiten.Image
-	X            int
-	Y            int
-	DamageLevel  int // 0 = no damage, 1-2 = damaged, 3 = destroyed (removed)
-	Exists       bool
+	Sprite      *ebiten.Image
+	X           int
+	Y           int
+	DamageLevel int // 0 = no damage, 1-2 = damaged, 3 = destroyed (removed)
+	Exists      bool
 }
 
 type Base struct {
@@ -42,12 +42,12 @@ func NewBase(baseX, baseY int) *Base {
 		for col := 0; col < 4; col++ {
 			blockX := baseX + (col * 8)
 			blockY := baseY + (row * 8)
-			
+
 			// Skip bottom center blocks (archway effect)
 			if row == 3 && (col == 1 || col == 2) {
 				continue
 			}
-			
+
 			block := NewBaseBlock(blockX, blockY)
 			base.Blocks = append(base.Blocks, block)
 		}
@@ -60,9 +60,9 @@ func (b *BaseBlock) TakeDamage() {
 	if !b.Exists {
 		return
 	}
-	
+
 	b.DamageLevel++
-	
+
 	if b.DamageLevel >= 3 {
 		b.Exists = false
 	} else {
@@ -73,18 +73,18 @@ func (b *BaseBlock) TakeDamage() {
 
 func CreateBases(playerY int) []*Base {
 	bases := make([]*Base, 4)
-	
+
 	// Calculate base positioning
 	baseWidth := 4 * 8 // 4 blocks * 8 pixels each (scaled down 50%)
 	screenWidth := 320
 	spacing := (screenWidth - (4 * baseWidth)) / 5 // Equal spacing between and around bases
-	
+
 	baseY := playerY - 8 - (4 * 8) // 8 pixels above player, minus base height
-	
+
 	for i := 0; i < 4; i++ {
 		baseX := spacing + (i * (baseWidth + spacing))
 		bases[i] = NewBase(baseX, baseY)
 	}
-	
+
 	return bases
 }

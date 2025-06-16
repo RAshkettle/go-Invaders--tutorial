@@ -75,7 +75,7 @@ func (t *EndScene) Update() error {
 	// Check for mouse clicks
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) ||
 		inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
-			t.sceneManager.gameScene = NewGameScene(t.sceneManager)
+		t.sceneManager.gameScene = NewGameScene(t.sceneManager)
 		t.sceneManager.TransitionTo(SceneGame)
 		return nil
 	}

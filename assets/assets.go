@@ -20,19 +20,19 @@ var (
 	MiddleInvaderAnimation = splitImage(middleInvaderSpriteSheet)
 	BottomInvaderAnimation = splitImage(bottomInvaderSpriteSheet)
 
-	Player = loadImage("player/Player.png")
+	Player     = loadImage("player/Player.png")
 	PlayerShot = loadImage("player/PlayerShot.png")
-	AlienShot = loadImage("invaders/AlienShot.png")
-	UFO = loadImage("invaders/ufo.png")
+	AlienShot  = loadImage("invaders/AlienShot.png")
+	UFO        = loadImage("invaders/ufo.png")
 
 	baseSpriteSheet = loadImage("player/base.png")
-	BaseSprites = splitBaseImage(baseSpriteSheet)
+	BaseSprites     = splitBaseImage(baseSpriteSheet)
 
-	MoveSound = loadAudio("audio/move.ogg")
-	PlayerShootSound = loadAudio("audio/laserShoot.ogg")
+	MoveSound           = loadAudio("audio/move.ogg")
+	PlayerShootSound    = loadAudio("audio/laserShoot.ogg")
 	AlienExplosionSound = loadAudio("audio/alienexplosion.ogg")
-	PlayerDeathSound = loadAudio("audio/playerDeath.ogg")
-	UFOSound = loadAudio("audio/ufo.ogg")
+	PlayerDeathSound    = loadAudio("audio/playerDeath.ogg")
+	UFOSound            = loadAudio("audio/ufo.ogg")
 )
 
 func loadImage(filePath string) *ebiten.Image {
@@ -67,7 +67,7 @@ func splitImage(spriteSheet *ebiten.Image) []*ebiten.Image {
 	return []*ebiten.Image{firstFrame, secondFrame}
 }
 
-func splitBaseImage(spriteSheet *ebiten.Image) []*ebiten.Image{
+func splitBaseImage(spriteSheet *ebiten.Image) []*ebiten.Image {
 	const tileSize = 16
 	first := spriteSheet.SubImage(image.Rect(0, 0, tileSize, tileSize)).(*ebiten.Image)
 	second := spriteSheet.SubImage(image.Rect(tileSize, 0, tileSize*2, tileSize)).(*ebiten.Image)
