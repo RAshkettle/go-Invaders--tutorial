@@ -9,7 +9,7 @@ import (
 	stopwatch "github.com/RAshkettle/Stopwatch"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
-	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
 )
 
 type GameScene struct {
@@ -24,12 +24,13 @@ const (
 	STEP = 16
 )
 
-type Direction int
-
-const (
+type Direction int 
+const(
 	LEFT Direction = iota
 	RIGHT
 )
+
+
 
 func (g *GameScene) Update() error {
 	currentSpeed := len(g.aliens) * 20
@@ -44,6 +45,8 @@ func (g *GameScene) Update() error {
 		g.timer = stopwatch.NewStopwatch(time.Duration(currentSpeed) * time.Millisecond)
 		g.timer.Start()
 	}
+
+	
 
 	return nil
 }
@@ -93,17 +96,16 @@ func (g *GameScene) SpawnAliens() []*Alien {
 	return SpawnAlienWave()
 }
 
-func toggleDirection(current Direction) Direction {
-	if current == LEFT {
+func toggleDirection(current Direction)Direction{
+	if current == LEFT{
 		return RIGHT
 	}
 	return LEFT
 }
 
 func (g *GameScene) moveAliens() {
-	// Play Move Sound
-	// Decode the Ogg Vorbis stream, resampling it to the audio context's sample rate.
-	moveStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.MoveSound))
+	// Play Move Sound - create fresh player for clean audio
+	moveStream, err := mp3.DecodeWithoutResampling(bytes.NewReader(assets.MoveSound))
 	if err == nil {
 		moveAudioPlayer, err := g.audioContext.NewPlayer(moveStream)
 		if err == nil {
@@ -127,7 +129,7 @@ func (g *GameScene) moveAliens() {
 	if shouldReverse {
 		g.currentDirection = toggleDirection(g.currentDirection)
 		for _, alien := range g.aliens {
-			alien.Y += 8        // Move down when reversing direction
+			alien.Y += 8 // Move down when reversing direction
 			alien.ToggleFrame() // Toggle animation frame
 		}
 	} else {
